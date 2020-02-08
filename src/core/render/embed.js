@@ -2,12 +2,13 @@ import { get } from '../fetch/ajax'
 import { merge } from '../util/core'
 import stripIndent from 'strip-indent'
 
+const INCLUDE_COMPONENT = '__include__'
 const cached = {}
 
 function walkFetchEmbed({ embedTokens, compile, fetch }, cb) {
   let token
   let step = 0
-  let count = 1
+  let count = 0
 
   if (!embedTokens.length) {
     return cb({})
@@ -46,7 +47,7 @@ function walkFetchEmbed({ embedTokens, compile, fetch }, cb) {
         }
 
         cb({ token, embedToken })
-        if (++count >= step) {
+        if (++count >= embedTokens.length) {
           cb({})
         }
       }
@@ -62,6 +63,23 @@ function walkFetchEmbed({ embedTokens, compile, fetch }, cb) {
       next(token.embed.html)
     }
   }
+}
+
+function expandInclude(tokens) {
+  if (!tokens) {
+    return tokens
+  }
+
+  const expandedTokens = []
+  tokens.forEach(e => {
+    if (e.type === INCLUDE_COMPONENT && e.components) {
+      e.components.forEach(c => expandedTokens.push(c))
+    } else {
+      expandedTokens.push(e)
+    }
+  })
+
+  return expandedTokens
 }
 
 export function prerenderEmbed({ compiler, raw = '', fetch }, done) {
@@ -98,18 +116,19 @@ export function prerenderEmbed({ compiler, raw = '', fetch }, done) {
     }
   })
 
-  let moveIndex = 0
   walkFetchEmbed({ compile, embedTokens, fetch }, ({ embedToken, token }) => {
     if (token) {
-      const index = token.index + moveIndex
-
       merge(links, embedToken.links)
 
-      tokens = tokens
-        .slice(0, index)
-        .concat(embedToken, tokens.slice(index + 1))
-      moveIndex += embedToken.length - 1
+      tokens = tokens.slice(0, token.index).concat(
+        {
+          type: INCLUDE_COMPONENT,
+          components: embedToken
+        },
+        tokens.slice(token.index + 1)
+      )
     } else {
+      tokens = expandInclude(tokens)
       cached[raw] = tokens.concat()
       tokens.links = cached[raw].links = links
       done(tokens)
