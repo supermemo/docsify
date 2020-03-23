@@ -40,6 +40,10 @@ export function stringifyQuery(obj, ignores = []) {
   return qs.length ? `?${qs.join('&')}` : '';
 }
 
+export const isRootPath = cached(path => {
+  return path === '/' || /^\/[^/]+/.test(path);
+});
+
 export const isAbsolutePath = cached(path => {
   return /(:|(\/{2}))/g.test(path);
 });

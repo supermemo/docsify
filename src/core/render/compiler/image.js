@@ -1,5 +1,10 @@
 import { getAndRemoveConfig } from '../utils';
-import { isAbsolutePath, getPath, getParentPath } from '../../router/util';
+import {
+  isAbsolutePath,
+  isRootPath,
+  getPath,
+  getParentPath,
+} from '../../router/util';
 
 export const imageCompiler = ({ renderer, contentBase, router }) =>
   (renderer.image = (href, title, text) => {
@@ -34,7 +39,7 @@ export const imageCompiler = ({ renderer, contentBase, router }) =>
       attrs.push(`id="${config.id}"`);
     }
 
-    if (!isAbsolutePath(href)) {
+    if (!isAbsolutePath(href) && !isRootPath(href)) {
       url = getPath(contentBase, getParentPath(router.getCurrentPath()), href);
     }
 
